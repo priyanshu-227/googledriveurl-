@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive QR Code Generator</title>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2261533456327289"
+     crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .qr-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .error-message {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Google Drive QR Generator</h1>
+        
+        <div class="error-message" id="error-message"></div>
+        <div class="success-message" id="success-message"></div>
+        
+        <div class="input-group">
+            <label for="drive-url">Google Drive URL:</label>
+            <input type="text" id="drive-url" placeholder="Paste your Google Drive URL here..." />
+        </div>
+        
+        <button class="generate-btn" onclick="generateQR()">
+            ✨ Generate QR Code
+        </button>
+        
+        <div class="qr-container" id="qr-container">
+            <div id="qrcode"></div>
+            <button class="download-btn" onclick="downloadQR()">
+                💾 Download QR Code
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentQRDataURL = null;
+        
+        // Validate Google Drive URL
+        function isValidGoogleDriveUrl(url) {
+            const patterns = [
+                /^https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/,
+                /^https:\/\/drive\.google\.com\/open\?id=([a-zA-Z0-9-_]+)/,
+                /^https:\/\/docs\.google\.com\/document\/d\/([a-zA-Z0-9-_]+)/,
+                /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
+                /^https:\/\/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9-_]+)/,
+                /^https:\/\/drive\.google\.com\/drive\/folders\/([a-zA-Z0-9-_]+)/
+            ];
+            
+            return patterns.some(pattern => pattern.test(url));
+        }
+
+        // Convert Google Drive URL to direct access format
+        function convertToDirectUrl(url) {
+            // Extract file ID from various Google Drive URL formats
+            let fileId = null;
+            
+            const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+            if (fileMatch) {
+                fileId = fileMatch[1];
+                return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+            }
+            
+            const openMatch = url.match(/[?&]id=([a-zA-Z0-9-_]+)/);
+            if (openMatch) {
+                fileId = openMatch[1];
+                return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+            }
+            
+            // For documents, spreadsheets, presentations, and folders, return as-is
+            return url;
+        }
+
+        // Show message functions
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function hideMessages() {
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // Generate QR Code
+        function generateQR() {
+            const url = document.getElementById('drive-url').value.trim();
+            
+            hideMessages();
+            
+            if (!url) {
+                showError('Please enter a Google Drive URL');
+                return;
+            }
+            
+            if (!isValidGoogleDriveUrl(url)) {
+                showError('Please enter a valid Google Drive URL');
+                return;
+            }
+            
+            try {
+                const processedUrl = convertToDirectUrl(url);
+                
+                // Clear previous QR code
+                document.getElementById('qrcode').innerHTML = '';
+                
+                // Generate QR code using QRCodeJS
+                const qrcode = new QRCode(document.getElementById('qrcode'), {
+                    text: processedUrl,
+                    width: 300,
+                    height: 300,
+                    colorDark: '#000000',
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                
+                // Wait a moment for the QR code to render, then get the canvas
+                setTimeout(() => {
+                    const canvas = document.getElementById('qrcode').querySelector('canvas');
+                    if (canvas) {
+                        currentQRDataURL = canvas.toDataURL();
+                        document.getElementById('qr-container').style.display = 'block';
+                        showSuccess('QR code generated successfully!');
+                    } else {
+                        showError('Error generating QR code. Please try again.');
+                    }
+                }, 100);
+                
+            } catch (error) {
+                showError('Error generating QR code. Please try again.');
+                console.error('QR generation error:', error);
+            }
+        }
+
+        // Download QR Code
+        function downloadQR() {
+            if (!currentQRDataURL) {
+                showError('No QR code to download');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.download = 'google-drive-qr.png';
+            link.href = currentQRDataURL;
+            link.click();
+        }
+
+        // Allow Enter key to generate QR
+        document.getElementById('drive-url').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQR();
+            }
+        });
+    </script>
+</body>
+</html>
